@@ -2,7 +2,7 @@
 
 import { use, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { API_URL } from '../../../../lib/api'
+import { API_URL, apiFetch } from '../../../../lib/api'
 import { useAuth } from '../../../../lib/useAuth'
 import { getToken } from '../../../../lib/auth'
 
@@ -22,6 +22,8 @@ export default function GalleryPage({ params }: { params: Promise<{ eventId: str
 	const [eventName, setEventName] = useState('')
 	const [selected, setSelected] = useState<Photo | null>(null)
 	const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+	const [isDownloading, setIsDownloading] = useState(false)
 
 	const fetchPhotos = useCallback(async () => {
 		try {
@@ -66,6 +68,34 @@ export default function GalleryPage({ params }: { params: Promise<{ eventId: str
 			if (pollRef.current) clearInterval(pollRef.current)
 		}
 	}, [checking, fetchPhotos, fetchEventName])
+
+	const handleDownloadZip = async () => {
+		if (isDownloading) return
+		setIsDownloading(true)
+		try {
+			interface ZipResponse {
+				url: string
+			}
+			const data = await apiFetch<ZipResponse>(`/events/${eventId}/download-zip`)
+
+			if (data && data.url) {
+				const a = document.createElement('a')
+				a.href = data.url
+				a.target = '_blank' // Otwiera w nowej karcie na wypadek restrykcji mobilnych
+				document.body.appendChild(a)
+				a.click()
+				document.body.removeChild(a)
+			} else {
+				alert('Serwer nie zwrócił poprawnego linku do paczki ZIP.')
+			}
+		} catch (err) {
+			console.error('Błąd pobierania ZIP:', err)
+			// apiFetch automatycznie wyciągnie komunikat błędu wysłany z NestJS (np. "Wydarzenie nie istnieje")
+			alert(err instanceof Error ? err.message : 'Wystąpił błąd podczas generowania paczki ZIP.')
+		} finally {
+			setIsDownloading(false)
+		}
+	}
 
 	const done = photos.filter(p => p.status !== 'PENDING' && p.status !== 'FAILED')
 	const pending = photos.filter(p => p.status === 'PENDING')
@@ -123,6 +153,13 @@ export default function GalleryPage({ params }: { params: Promise<{ eventId: str
 						</div>
 
 						<div style={{ display: 'flex', gap: 10 }}>
+							<button
+								onClick={handleDownloadZip}
+								disabled={isDownloading}
+								className='btn-primary' // Zmieniłem na btn-primary, żeby wyróżniał się jako główna akcja (pobranie zdjęć)
+								style={{ fontSize: '0.85rem', cursor: isDownloading ? 'not-allowed' : 'pointer' }}>
+								{isDownloading ? 'Generowanie ZIP...' : '📦 Pobierz ZIP'}
+							</button>
 							<Link href={`/dashboard/events/${eventId}/qr`} className='btn-secondary' style={{ fontSize: '0.85rem' }}>
 								QR Code
 							</Link>

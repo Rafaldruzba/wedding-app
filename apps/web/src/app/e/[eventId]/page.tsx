@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useRef, useState } from 'react'
 import { API_URL } from '../../lib/api'
 
 type Step = 'camera' | 'preview' | 'uploading' | 'success' | 'error_camera'
+type FacingMode = 'environment' | 'user'
 
 export default function GuestCameraPage({ params }: { params: Promise<{ eventId: string }> }) {
 	const { eventId } = use(params)
@@ -17,17 +18,37 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 	const [uploadError, setUploadError] = useState('')
 	const [count, setCount] = useState(0)
 
-	// Start camera
+	// Nowe stany dla obsługi zaawansowanej kamery
+	const [facingMode, setFacingMode] = useState<FacingMode>('environment')
+	const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
+	const [zoomCapabilities, setZoomCapabilities] = useState<{ min: number; max: number; step: number } | null>(null)
+	const [zoomValue, setZoomValue] = useState(1)
+
+	// Sprawdzanie dostępności wielu kamer (np. przód i tył)
+	useEffect(() => {
+		navigator.mediaDevices
+			.enumerateDevices()
+			.then(devices => {
+				const videoDevices = devices.filter(device => device.kind === 'videoinput')
+				setHasMultipleCameras(videoDevices.length > 1)
+			})
+			.catch(() => setHasMultipleCameras(false))
+	}, [])
+
+	// Start camera z maksymalnymi ustawieniami jakości
 	const startCamera = useCallback(async () => {
 		try {
 			// Stop existing stream first
-			streamRef.current?.getTracks().forEach(t => t.stop())
+			if (streamRef.current) {
+				streamRef.current.getTracks().forEach(t => t.stop())
+			}
 
 			const stream = await navigator.mediaDevices.getUserMedia({
 				video: {
-					facingMode: { ideal: 'environment' }, // rear camera on phones
-					width: { ideal: 1920 },
-					height: { ideal: 1080 },
+					facingMode: { ideal: facingMode },
+					// Wymuszenie najwyższej możliwej jakości (4K ideal, jeśli telefon potrafi)
+					width: { ideal: 3840, min: 1280 },
+					height: { ideal: 2160, min: 720 },
 				},
 				audio: false,
 			})
@@ -39,11 +60,28 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 				await videoRef.current.play()
 			}
 
+			// Pobranie możliwości zoomu z aktywnego tracka wideo
+			const videoTrack = stream.getVideoTracks()[0]
+			if (videoTrack && typeof videoTrack.getCapabilities === 'function') {
+				const capabilities = videoTrack.getCapabilities() as any
+				if (capabilities.zoom) {
+					setZoomCapabilities({
+						min: capabilities.zoom.min || 1,
+						max: capabilities.zoom.max || 4,
+						step: capabilities.zoom.step || 0.1,
+					})
+					setZoomValue(capabilities.zoom.min || 1)
+				} else {
+					setZoomCapabilities(null)
+				}
+			}
+
 			setStep('camera')
-		} catch {
+		} catch (err) {
+			console.error('Błąd uruchamiania kamery:', err)
 			setStep('error_camera')
 		}
-	}, [])
+	}, [facingMode])
 
 	useEffect(() => {
 		startCamera()
@@ -52,16 +90,51 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 		}
 	}, [startCamera])
 
+	// Obsługa zmiany przybliżenia (Zoom)
+	const handleZoomChange = async (value: number) => {
+		setZoomValue(value)
+		const videoTrack = streamRef.current?.getVideoTracks()[0]
+		if (videoTrack && typeof videoTrack.applyConstraints === 'function') {
+			try {
+				await videoTrack.applyConstraints({
+					advanced: [{ zoom: value } as any],
+				})
+			} catch (err) {
+				console.warn('Nie udało się zastosować zoomu:', err)
+			}
+		}
+	}
+
+	// Przełączanie kamery przód/tył
+	const toggleCamera = () => {
+		setFacingMode(prev => (prev === 'environment' ? 'user' : 'environment'))
+	}
+
 	const capture = () => {
 		const video = videoRef.current
 		const canvas = canvasRef.current
 		if (!video || !canvas) return
 
+		// Pobieramy realną rozdzielczość strumienia wideo (a nie elementu HTML)
 		canvas.width = video.videoWidth
 		canvas.height = video.videoHeight
-		canvas.getContext('2d')?.drawImage(video, 0, 0)
 
-		setPreview(canvas.toDataURL('image/jpeg', 0.92))
+		const ctx = canvas.getContext('2d')
+		if (!ctx) return
+
+		// Jeśli robimy selfie przednią kamerą, lustrzane odbicie na zdjęciu wygląda naturalniej
+		if (facingMode === 'user') {
+			ctx.translate(canvas.width, 0)
+			ctx.scale(-1, 1)
+		}
+
+		ctx.drawImage(video, 0, 0)
+
+		// Reset transformacji w razie kolejnych ujęć
+		ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+		// Wyższa jakość kompresji (0.95 to złoty środek dla idealnego JPEG)
+		setPreview(canvas.toDataURL('image/jpeg', 0.95))
 		setStep('preview')
 	}
 
@@ -77,7 +150,7 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 
 		try {
 			const blob = await new Promise<Blob | null>(resolve =>
-				canvasRef.current!.toBlob(b => resolve(b), 'image/jpeg', 0.92),
+				canvasRef.current!.toBlob(b => resolve(b), 'image/jpeg', 0.95),
 			)
 			if (!blob) throw new Error('Nie udało się przygotować zdjęcia')
 
@@ -95,7 +168,7 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 			setStep('success')
 		} catch (err) {
 			setUploadError(err instanceof Error ? err.message : 'Błąd uploadu')
-			setStep('preview') // stay on preview so user can retry
+			setStep('preview')
 		}
 	}
 
@@ -155,6 +228,8 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 							height: '100%',
 							objectFit: 'cover',
 							display: step === 'camera' ? 'block' : 'none',
+							// Odbicie lustrzane podglądu dla przedniej kamery
+							transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
 						}}
 					/>
 
@@ -179,6 +254,7 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 							display: 'flex',
 							justifyContent: 'space-between',
 							alignItems: 'center',
+							zIndex: 10,
 						}}>
 						<p style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600 }}>WeddingSnap</p>
 						{count > 0 && (
@@ -196,6 +272,38 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 						)}
 					</div>
 
+					{/* Suwak Zoomu (widoczny tylko w trybie aparatu i gdy urządzenie go wspiera) */}
+					{step === 'camera' && zoomCapabilities && (
+						<div
+							style={{
+								position: 'absolute',
+								bottom: 20,
+								left: '50%',
+								transform: 'translateX(-50%)',
+								width: '60%',
+								maxWidth: 200,
+								background: 'rgba(0,0,0,0.5)',
+								padding: '8px 16px',
+								borderRadius: 20,
+								display: 'flex',
+								alignItems: 'center',
+								gap: 10,
+								zIndex: 10,
+							}}>
+							<span style={{ fontSize: '0.75rem', opacity: 0.7 }}>1x</span>
+							<input
+								type='range'
+								min={zoomCapabilities.min}
+								max={zoomCapabilities.max}
+								step={zoomCapabilities.step}
+								value={zoomValue}
+								onChange={e => handleZoomChange(parseFloat(e.target.value))}
+								style={{ flex: 1, accentColor: 'var(--gold, #fff)' }}
+							/>
+							<span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{Math.round(zoomValue)}x</span>
+						</div>
+					)}
+
 					{/* Success overlay */}
 					{step === 'success' && (
 						<div
@@ -208,6 +316,7 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 								alignItems: 'center',
 								justifyContent: 'center',
 								gap: 12,
+								zIndex: 10,
 							}}>
 							<div
 								style={{
@@ -239,6 +348,7 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 								alignItems: 'center',
 								justifyContent: 'center',
 								gap: 16,
+								zIndex: 10,
 							}}>
 							<span className='spinner' style={{ width: 40, height: 40, borderWidth: 3 }} />
 							<p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>Wysyłanie…</p>
@@ -267,8 +377,11 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 					)}
 
 					{step === 'camera' && (
-						<div style={{ display: 'flex', justifyContent: 'center' }}>
-							{/* Classic shutter button */}
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+							{/* Lewa strona - pusty placeholder dla balansu, lub dodatkowy ficzer */}
+							<div style={{ width: 48 }} />
+
+							{/* Przycisk Migawki */}
 							<button
 								onClick={capture}
 								style={{
@@ -292,6 +405,30 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 									}}
 								/>
 							</button>
+
+							{/* Prawa strona - Przycisk zmiany kamery */}
+							<div style={{ width: 48, display: 'flex', justifyContent: 'center' }}>
+								{hasMultipleCameras && (
+									<button
+										onClick={toggleCamera}
+										style={{
+											background: 'rgba(255,255,255,0.15)',
+											border: 'none',
+											borderRadius: '50%',
+											width: 44,
+											height: 44,
+											cursor: 'pointer',
+											display: 'flex',
+											alignItems: 'center',
+											justifyContent: 'center',
+											fontSize: '1.2rem',
+											color: '#fff',
+										}}
+										title='Zmień kamerę'>
+										🔄
+									</button>
+								)}
+							</div>
 						</div>
 					)}
 

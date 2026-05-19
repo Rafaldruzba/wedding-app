@@ -40,4 +40,12 @@ export class EventsController {
   findBySlug(@Param('slug') slug: string) {
     return this.eventsService.findBySlug(slug);
   }
+
+  @Get(':id/download-zip')
+  async downloadPhotosZip(@Param('id') eventId: string) {
+    const url = await this.eventsService.getDownloadAllPhotosZipUrl(eventId);
+
+    // Zwracamy obiekt z URL do frontendu
+    return { url };
+  }
 }
