@@ -1,6 +1,6 @@
 import { getToken, removeToken } from './auth'
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+export const API_URL = process.env.NEST_PUBLIC_API_URL || 'http://localhost:3001'
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}, withAuth: boolean = true): Promise<T> {
 	const headers: Record<string, string> = {
