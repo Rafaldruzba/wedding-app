@@ -45,6 +45,15 @@ export default function DashboardPage() {
 		)
 	}
 
+	if (!user) {
+		return (
+			<main
+				style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<p style={{ color: 'var(--muted)' }}>Brak dostępu</p>
+			</main>
+		)
+	}
+
 	return (
 		<main style={{ minHeight: 'calc(100vh - 60px)', padding: '40px 24px 80px' }}>
 			<div style={{ maxWidth: 1200, margin: '0 auto' }}>

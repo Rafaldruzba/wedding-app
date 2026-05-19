@@ -42,8 +42,9 @@ export class EventsService {
     });
   }
 
-  async findAll() {
+  async findAll(userId: string) {
     return this.prisma.client.event.findMany({
+      where: { userId },
       orderBy: { createdAt: 'desc' },
       include: {
         photos: true,
@@ -51,9 +52,9 @@ export class EventsService {
     });
   }
 
-  async findOne(id: string) {
-    const event = await this.prisma.client.event.findUnique({
-      where: { id },
+  async findOne(id: string, userId: string) {
+    const event = await this.prisma.client.event.findFirst({
+      where: { id, userId },
       include: { photos: true },
     });
 

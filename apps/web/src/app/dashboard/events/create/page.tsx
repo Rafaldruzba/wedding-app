@@ -46,7 +46,14 @@ export default function CreateEventPage() {
 		}
 	}
 
-	if (checking) return null
+	if (checking) {
+		return (
+			<main
+				style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<span className='spinner' style={{ width: 32, height: 32 }} />
+			</main>
+		)
+	}
 
 	return (
 		<main style={{ minHeight: 'calc(100vh - 60px)', padding: '40px 24px 80px' }}>

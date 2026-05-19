@@ -20,7 +20,14 @@ export default function EventQRPage({ params }: { params: Promise<{ eventId: str
 		setTimeout(() => setCopied(false), 2000)
 	}
 
-	if (checking) return null
+	if (checking) {
+		return (
+			<main
+				style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<span className='spinner' style={{ width: 32, height: 32 }} />
+			</main>
+		)
+	}
 
 	return (
 		<main style={{ minHeight: 'calc(100vh - 60px)', padding: '40px 24px 80px' }}>
@@ -41,7 +48,7 @@ export default function EventQRPage({ params }: { params: Promise<{ eventId: str
 				<div className='card fade-up' style={{ padding: '40px 36px', textAlign: 'center' }}>
 					<p
 						style={{
-							fontSize: '0.75rem',
+							fontSize: '1rem',
 							textTransform: 'uppercase',
 							letterSpacing: '0.1em',
 							color: 'var(--gold)',

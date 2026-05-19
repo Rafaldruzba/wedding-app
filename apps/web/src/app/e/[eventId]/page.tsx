@@ -15,7 +15,7 @@ export default function GuestCameraPage({ params }: { params: Promise<{ eventId:
 	const [step, setStep] = useState<Step>('camera')
 	const [preview, setPreview] = useState<string | null>(null)
 	const [uploadError, setUploadError] = useState('')
-	const [count, setCount] = useState(0) // photos sent this session
+	const [count, setCount] = useState(0)
 
 	// Start camera
 	const startCamera = useCallback(async () => {

@@ -5,12 +5,23 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
 import { setToken } from '../lib/auth'
+import { useAuth } from '../lib/useAuth'
 
 export default function LoginPage() {
 	const router = useRouter()
+	const { checking } = useAuth()
 	const [form, setForm] = useState({ email: '', password: '' })
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState('')
+
+	if (checking) {
+		return (
+			<main
+				style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<span className='spinner' style={{ width: 32, height: 32 }} />
+			</main>
+		)
+	}
 
 	const onSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -27,8 +38,12 @@ export default function LoginPage() {
 				false,
 			)
 
-			if (data?.accessToken) setToken(data.accessToken)
-			router.push('/dashboard')
+			if (data?.accessToken) {
+				setToken(data.accessToken)
+				router.push('/dashboard')
+			} else {
+				setError('Nie udało się zalogować')
+			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Błąd logowania')
 		} finally {

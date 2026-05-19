@@ -71,7 +71,14 @@ export default function GalleryPage({ params }: { params: Promise<{ eventId: str
 	const pending = photos.filter(p => p.status === 'PENDING')
 	const failed = photos.filter(p => p.status === 'FAILED')
 
-	if (checking) return null
+	if (checking) {
+		return (
+			<main
+				style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<span className='spinner' style={{ width: 32, height: 32 }} />
+			</main>
+		)
+	}
 
 	return (
 		<main style={{ minHeight: 'calc(100vh - 60px)', padding: '40px 24px 80px' }}>
