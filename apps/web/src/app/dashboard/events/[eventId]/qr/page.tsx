@@ -5,7 +5,7 @@ import Link from 'next/link'
 import QRCode from 'react-qr-code'
 import { useAuth } from '../../../../lib/useAuth'
 
-const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'
+const FRONTEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export default function EventQRPage({ params }: { params: Promise<{ eventId: string }> }) {
 	const { eventId } = use(params)
