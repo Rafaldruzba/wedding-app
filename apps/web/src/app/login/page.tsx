@@ -4,13 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
+import { setToken } from '../lib/auth'
 
 export default function LoginPage() {
 	const router = useRouter()
-	const [form, setForm] = useState({
-		email: '',
-		password: '',
-	})
+	const [form, setForm] = useState({ email: '', password: '' })
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState('')
 
@@ -20,15 +18,16 @@ export default function LoginPage() {
 		setError('')
 
 		try {
-			const data = await apiFetch<{ accessToken?: string }>('/auth/login', {
-				method: 'POST',
-				body: JSON.stringify(form),
-			})
+			const data = await apiFetch<{ accessToken?: string }>(
+				'/auth/login',
+				{
+					method: 'POST',
+					body: JSON.stringify(form),
+				},
+				false,
+			)
 
-			if (data?.accessToken) {
-				localStorage.setItem('token', data.accessToken)
-			}
-
+			if (data?.accessToken) setToken(data.accessToken)
 			router.push('/dashboard')
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Błąd logowania')
@@ -38,44 +37,82 @@ export default function LoginPage() {
 	}
 
 	return (
-		<main className='flex min-h-screen items-center justify-center px-4 py-10'>
-			<div className='w-full max-w-md rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur'>
-				<div className='mb-6'>
-					<p className='text-sm text-white/60'>WeddingSnap</p>
-					<h1 className='mt-1 text-3xl font-bold'>Zaloguj się</h1>
-					<p className='mt-2 text-sm leading-6 text-white/70'>Wejdź do panelu, dodawaj eventy i generuj QR.</p>
-				</div>
+		<main
+			style={{
+				minHeight: 'calc(100vh - 60px)',
+				display: 'flex',
+				alignItems: 'center',
+				justifyContent: 'center',
+				padding: '40px 20px',
+			}}>
+			<div className='card fade-up' style={{ width: '100%', maxWidth: 420, padding: '40px 36px' }}>
+				<p
+					style={{
+						fontSize: '0.75rem',
+						textTransform: 'uppercase',
+						letterSpacing: '0.1em',
+						color: 'var(--gold)',
+						marginBottom: 12,
+					}}>
+					Witaj z powrotem
+				</p>
+				<h1
+					style={{
+						fontFamily: 'var(--font-display)',
+						fontSize: '2rem',
+						fontWeight: 700,
+						marginBottom: 8,
+					}}>
+					Zaloguj się
+				</h1>
+				<p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginBottom: 32 }}>
+					Wejdź do panelu, dodawaj eventy i generuj QR.
+				</p>
 
-				<form className='space-y-4' onSubmit={onSubmit}>
-					<input
-						className='w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none placeholder:text-white/30'
-						placeholder='Email'
-						type='email'
-						value={form.email}
-						onChange={e => setForm(s => ({ ...s, email: e.target.value }))}
-					/>
-					<input
-						className='w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none placeholder:text-white/30'
-						placeholder='Hasło'
-						type='password'
-						value={form.password}
-						onChange={e => setForm(s => ({ ...s, password: e.target.value }))}
-					/>
+				<form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+					<div>
+						<label className='label'>Email</label>
+						<input
+							className='input'
+							type='email'
+							placeholder='para@wesele.pl'
+							value={form.email}
+							onChange={e => setForm(s => ({ ...s, email: e.target.value }))}
+							required
+						/>
+					</div>
+					<div>
+						<label className='label'>Hasło</label>
+						<input
+							className='input'
+							type='password'
+							placeholder='••••••••'
+							value={form.password}
+							onChange={e => setForm(s => ({ ...s, password: e.target.value }))}
+							required
+						/>
+					</div>
 
-					{error ? (
-						<p className='rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200'>{error}</p>
-					) : null}
+					{error && <p className='error-box'>{error}</p>}
 
 					<button
+						type='submit'
 						disabled={loading}
-						className='w-full rounded-2xl bg-white px-4 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60'>
-						{loading ? 'Logowanie...' : 'Zaloguj się'}
+						className='btn-primary'
+						style={{ marginTop: 8, padding: '14px', fontSize: '0.95rem', borderRadius: 'var(--radius-sm)' }}>
+						{loading ? (
+							<>
+								<span className='spinner' style={{ width: 16, height: 16 }} /> Logowanie…
+							</>
+						) : (
+							'Zaloguj się'
+						)}
 					</button>
 				</form>
 
-				<p className='mt-5 text-sm text-white/60'>
+				<p style={{ marginTop: 24, fontSize: '0.875rem', color: 'var(--muted)', textAlign: 'center' }}>
 					Nie masz konta?{' '}
-					<Link className='text-white underline' href='/register'>
+					<Link href='/register' style={{ color: 'var(--gold)', textDecoration: 'underline' }}>
 						Załóż konto
 					</Link>
 				</p>

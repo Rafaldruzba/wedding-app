@@ -1,47 +1,109 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState } from 'react'
+import Link from 'next/link'
 import QRCode from 'react-qr-code'
+import { useAuth } from '../../../../lib/useAuth'
 
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'
 
 export default function EventQRPage({ params }: { params: Promise<{ eventId: string }> }) {
 	const { eventId } = use(params)
+	const { checking } = useAuth()
+	const [copied, setCopied] = useState(false)
 
 	const publicUrl = `${FRONTEND_URL}/e/${eventId}`
 
+	const copy = async () => {
+		await navigator.clipboard.writeText(publicUrl)
+		setCopied(true)
+		setTimeout(() => setCopied(false), 2000)
+	}
+
+	if (checking) return null
+
 	return (
-		<main className='min-h-screen px-4 py-10'>
-			<div className='mx-auto max-w-2xl'>
-				<div className='rounded-[2rem] border border-white/10 bg-white/5 p-8 text-center backdrop-blur'>
-					<p className='text-sm text-white/60'>Kod QR dla gości</p>
+		<main style={{ minHeight: 'calc(100vh - 60px)', padding: '40px 24px 80px' }}>
+			<div style={{ maxWidth: 520, margin: '0 auto' }}>
+				<Link
+					href='/dashboard'
+					style={{
+						fontSize: '0.85rem',
+						color: 'var(--muted)',
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: 6,
+						marginBottom: 32,
+					}}>
+					← Wróć do panelu
+				</Link>
 
-					<h1 className='mt-2 text-3xl font-bold'>Zeskanuj i dodaj zdjęcie 📸</h1>
+				<div className='card fade-up' style={{ padding: '40px 36px', textAlign: 'center' }}>
+					<p
+						style={{
+							fontSize: '0.75rem',
+							textTransform: 'uppercase',
+							letterSpacing: '0.1em',
+							color: 'var(--gold)',
+							marginBottom: 12,
+						}}>
+						Kod QR dla gości
+					</p>
+					<h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, marginBottom: 8 }}>
+						Zeskanuj i dodaj zdjęcie
+					</h1>
+					<p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginBottom: 36 }}>
+						Wydrukuj i połóż na stołach weselnych.
+					</p>
 
-					<p className='mt-3 text-white/70'>Wydrukuj ten kod i połóż go na stołach.</p>
-
-					<div className='mt-8 flex justify-center rounded-[2rem] bg-white p-6'>
-						<QRCode value={publicUrl} size={260} />
+					{/* QR */}
+					<div
+						style={{
+							display: 'flex',
+							justifyContent: 'center',
+							padding: 28,
+							background: '#fff',
+							borderRadius: 'var(--radius)',
+							marginBottom: 24,
+						}}>
+						<QRCode value={publicUrl} size={240} />
 					</div>
 
-					<div className='mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/60 break-all'>
+					{/* URL */}
+					<div
+						style={{
+							padding: '12px 16px',
+							borderRadius: 'var(--radius-sm)',
+							background: 'var(--bg)',
+							border: '1px solid var(--border)',
+							fontSize: '0.8rem',
+							color: 'var(--muted)',
+							fontFamily: 'monospace',
+							wordBreak: 'break-all',
+							marginBottom: 24,
+							textAlign: 'left',
+						}}>
 						{publicUrl}
 					</div>
 
-					<div className='mt-6 flex flex-wrap justify-center gap-3'>
-						<button onClick={() => window.print()} className='rounded-2xl bg-white px-5 py-3 font-semibold text-black'>
+					{/* Actions */}
+					<div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+						<button onClick={() => window.print()} className='btn-primary'>
 							Drukuj QR
 						</button>
-
-						<button
-							onClick={() => {
-								navigator.clipboard.writeText(publicUrl)
-							}}
-							className='rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-white'>
-							Kopiuj link
+						<button onClick={copy} className='btn-secondary'>
+							{copied ? '✓ Skopiowano' : 'Kopiuj link'}
 						</button>
 					</div>
 				</div>
+
+				{/* Print styles */}
+				<style>{`
+          @media print {
+            header, a[href] { display: none !important; }
+            body { background: white !important; }
+          }
+        `}</style>
 			</div>
 		</main>
 	)

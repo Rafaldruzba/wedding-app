@@ -2,18 +2,21 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
-import { apiFetch } from './../../../lib/api'
+import { apiFetch } from '../../../lib/api'
+import { useAuth } from '../../../lib/useAuth'
+import Link from 'next/link'
 
 function slugify(value: string) {
 	return value
 		.toLowerCase()
 		.trim()
 		.replace(/\s+/g, '-')
-		.replace(/[^a-z0-9\-]/g, '')
-		.replace(/\-+/g, '-')
+		.replace(/[^a-z0-9-]/g, '')
+		.replace(/-+/g, '-')
 }
 
 export default function CreateEventPage() {
+	const { checking } = useAuth()
 	const router = useRouter()
 	const [name, setName] = useState('')
 	const [date, setDate] = useState('')
@@ -33,13 +36,8 @@ export default function CreateEventPage() {
 		try {
 			const data = await apiFetch<{ id: string; slug: string }>('/events', {
 				method: 'POST',
-				body: JSON.stringify({
-					name,
-					date,
-					slug: suggestedSlug,
-				}),
+				body: JSON.stringify({ name, date, slug: suggestedSlug }),
 			})
-
 			router.push(`/dashboard/events/${data.id}/gallery`)
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Błąd tworzenia wydarzenia')
@@ -48,49 +46,100 @@ export default function CreateEventPage() {
 		}
 	}
 
+	if (checking) return null
+
 	return (
-		<main className='min-h-screen px-4 py-6 sm:px-6 lg:px-8'>
-			<div className='mx-auto max-w-2xl rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur'>
-				<p className='text-sm text-white/60'>Nowe wydarzenie</p>
-				<h1 className='mt-2 text-3xl font-bold'>Utwórz wesele</h1>
-				<p className='mt-2 text-sm leading-6 text-white/70'>Po utworzeniu dostaniesz publiczny link i QR do wydruku.</p>
+		<main style={{ minHeight: 'calc(100vh - 60px)', padding: '40px 24px 80px' }}>
+			<div style={{ maxWidth: 560, margin: '0 auto' }}>
+				{/* Back */}
+				<Link
+					href='/dashboard'
+					style={{
+						fontSize: '0.85rem',
+						color: 'var(--muted)',
+						display: 'inline-flex',
+						alignItems: 'center',
+						gap: 6,
+						marginBottom: 32,
+					}}>
+					← Wróć do panelu
+				</Link>
 
-				<form className='mt-6 space-y-4' onSubmit={onSubmit}>
-					<div className='space-y-2'>
-						<label className='text-sm text-white/70'>Nazwa wydarzenia</label>
-						<input
-							className='w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none placeholder:text-white/30'
-							placeholder='Ania i Paweł'
-							value={name}
-							onChange={e => setName(e.target.value)}
-						/>
-					</div>
+				<div className='card fade-up' style={{ padding: '40px 36px' }}>
+					<p
+						style={{
+							fontSize: '0.75rem',
+							textTransform: 'uppercase',
+							letterSpacing: '0.1em',
+							color: 'var(--gold)',
+							marginBottom: 12,
+						}}>
+						Nowe wydarzenie
+					</p>
+					<h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 700, marginBottom: 8 }}>
+						Utwórz wesele
+					</h1>
+					<p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginBottom: 36 }}>
+						Po utworzeniu dostaniesz publiczny link i QR do wydruku.
+					</p>
 
-					<div className='space-y-2'>
-						<label className='text-sm text-white/70'>Data</label>
-						<input
-							className='w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none placeholder:text-white/30'
-							type='date'
-							value={date}
-							onChange={e => setDate(e.target.value)}
-						/>
-					</div>
+					<form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+						<div>
+							<label className='label'>Nazwa wydarzenia</label>
+							<input
+								className='input'
+								placeholder='Ania i Paweł'
+								value={name}
+								onChange={e => setName(e.target.value)}
+								required
+							/>
+						</div>
 
-					<div className='rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70'>
-						<p className='text-white'>Sugestia sluga</p>
-						<p className='mt-1 font-mono text-white/80'>{suggestedSlug || 'wpisz nazwę wydarzenia'}</p>
-					</div>
+						<div>
+							<label className='label'>Data (opcjonalna)</label>
+							<input className='input' type='date' value={date} onChange={e => setDate(e.target.value)} />
+						</div>
 
-					{error ? (
-						<p className='rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200'>{error}</p>
-					) : null}
+						{/* Slug preview */}
+						<div
+							style={{
+								padding: '16px',
+								borderRadius: 'var(--radius-sm)',
+								background: 'var(--gold-glow)',
+								border: '1px solid rgba(201,169,110,0.2)',
+							}}>
+							<p
+								style={{
+									fontSize: '0.75rem',
+									color: 'var(--gold)',
+									textTransform: 'uppercase',
+									letterSpacing: '0.06em',
+									marginBottom: 6,
+								}}>
+								Sugestia sluga
+							</p>
+							<p style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: 'var(--white)' }}>
+								{suggestedSlug || <span style={{ color: 'var(--muted-2)' }}>wpisz nazwę wydarzenia</span>}
+							</p>
+						</div>
 
-					<button
-						disabled={loading}
-						className='w-full rounded-2xl bg-white px-4 py-3 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-60'>
-						{loading ? 'Tworzenie...' : 'Utwórz wydarzenie'}
-					</button>
-				</form>
+						{error && <p className='error-box'>{error}</p>}
+
+						<button
+							type='submit'
+							disabled={loading || !name}
+							className='btn-primary'
+							style={{ marginTop: 4, padding: '14px', fontSize: '0.95rem', borderRadius: 'var(--radius-sm)' }}>
+							{loading ? (
+								<>
+									<span className='spinner' style={{ width: 16, height: 16 }} /> Tworzenie…
+								</>
+							) : (
+								'Utwórz wydarzenie'
+							)}
+						</button>
+					</form>
+				</div>
 			</div>
 		</main>
 	)

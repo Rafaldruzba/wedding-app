@@ -102,7 +102,9 @@ export const PhotoScalarFieldEnum = {
   eventId: 'eventId',
   url: 'url',
   filename: 'filename',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  cloudinaryId: 'cloudinaryId',
+  status: 'status'
 } as const
 
 export type PhotoScalarFieldEnum = (typeof PhotoScalarFieldEnum)[keyof typeof PhotoScalarFieldEnum]

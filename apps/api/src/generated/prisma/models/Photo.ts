@@ -30,6 +30,8 @@ export type PhotoMinAggregateOutputType = {
   url: string | null
   filename: string | null
   createdAt: Date | null
+  cloudinaryId: string | null
+  status: string | null
 }
 
 export type PhotoMaxAggregateOutputType = {
@@ -38,6 +40,8 @@ export type PhotoMaxAggregateOutputType = {
   url: string | null
   filename: string | null
   createdAt: Date | null
+  cloudinaryId: string | null
+  status: string | null
 }
 
 export type PhotoCountAggregateOutputType = {
@@ -46,6 +50,8 @@ export type PhotoCountAggregateOutputType = {
   url: number
   filename: number
   createdAt: number
+  cloudinaryId: number
+  status: number
   _all: number
 }
 
@@ -56,6 +62,8 @@ export type PhotoMinAggregateInputType = {
   url?: true
   filename?: true
   createdAt?: true
+  cloudinaryId?: true
+  status?: true
 }
 
 export type PhotoMaxAggregateInputType = {
@@ -64,6 +72,8 @@ export type PhotoMaxAggregateInputType = {
   url?: true
   filename?: true
   createdAt?: true
+  cloudinaryId?: true
+  status?: true
 }
 
 export type PhotoCountAggregateInputType = {
@@ -72,6 +82,8 @@ export type PhotoCountAggregateInputType = {
   url?: true
   filename?: true
   createdAt?: true
+  cloudinaryId?: true
+  status?: true
   _all?: true
 }
 
@@ -153,6 +165,8 @@ export type PhotoGroupByOutputType = {
   url: string
   filename: string | null
   createdAt: Date
+  cloudinaryId: string | null
+  status: string
   _count: PhotoCountAggregateOutputType | null
   _min: PhotoMinAggregateOutputType | null
   _max: PhotoMaxAggregateOutputType | null
@@ -182,6 +196,8 @@ export type PhotoWhereInput = {
   url?: Prisma.StringFilter<"Photo"> | string
   filename?: Prisma.StringNullableFilter<"Photo"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Photo"> | Date | string
+  cloudinaryId?: Prisma.StringNullableFilter<"Photo"> | string | null
+  status?: Prisma.StringFilter<"Photo"> | string
   event?: Prisma.XOR<Prisma.EventScalarRelationFilter, Prisma.EventWhereInput>
 }
 
@@ -191,6 +207,8 @@ export type PhotoOrderByWithRelationInput = {
   url?: Prisma.SortOrder
   filename?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  cloudinaryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrder
   event?: Prisma.EventOrderByWithRelationInput
 }
 
@@ -203,6 +221,8 @@ export type PhotoWhereUniqueInput = Prisma.AtLeast<{
   url?: Prisma.StringFilter<"Photo"> | string
   filename?: Prisma.StringNullableFilter<"Photo"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Photo"> | Date | string
+  cloudinaryId?: Prisma.StringNullableFilter<"Photo"> | string | null
+  status?: Prisma.StringFilter<"Photo"> | string
   event?: Prisma.XOR<Prisma.EventScalarRelationFilter, Prisma.EventWhereInput>
 }, "id">
 
@@ -212,6 +232,8 @@ export type PhotoOrderByWithAggregationInput = {
   url?: Prisma.SortOrder
   filename?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  cloudinaryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  status?: Prisma.SortOrder
   _count?: Prisma.PhotoCountOrderByAggregateInput
   _max?: Prisma.PhotoMaxOrderByAggregateInput
   _min?: Prisma.PhotoMinOrderByAggregateInput
@@ -226,6 +248,8 @@ export type PhotoScalarWhereWithAggregatesInput = {
   url?: Prisma.StringWithAggregatesFilter<"Photo"> | string
   filename?: Prisma.StringNullableWithAggregatesFilter<"Photo"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Photo"> | Date | string
+  cloudinaryId?: Prisma.StringNullableWithAggregatesFilter<"Photo"> | string | null
+  status?: Prisma.StringWithAggregatesFilter<"Photo"> | string
 }
 
 export type PhotoCreateInput = {
@@ -233,6 +257,8 @@ export type PhotoCreateInput = {
   url: string
   filename?: string | null
   createdAt?: Date | string
+  cloudinaryId?: string | null
+  status?: string
   event: Prisma.EventCreateNestedOneWithoutPhotosInput
 }
 
@@ -242,6 +268,8 @@ export type PhotoUncheckedCreateInput = {
   url: string
   filename?: string | null
   createdAt?: Date | string
+  cloudinaryId?: string | null
+  status?: string
 }
 
 export type PhotoUpdateInput = {
@@ -249,6 +277,8 @@ export type PhotoUpdateInput = {
   url?: Prisma.StringFieldUpdateOperationsInput | string
   filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cloudinaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
   event?: Prisma.EventUpdateOneRequiredWithoutPhotosNestedInput
 }
 
@@ -258,6 +288,8 @@ export type PhotoUncheckedUpdateInput = {
   url?: Prisma.StringFieldUpdateOperationsInput | string
   filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cloudinaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PhotoCreateManyInput = {
@@ -266,6 +298,8 @@ export type PhotoCreateManyInput = {
   url: string
   filename?: string | null
   createdAt?: Date | string
+  cloudinaryId?: string | null
+  status?: string
 }
 
 export type PhotoUpdateManyMutationInput = {
@@ -273,6 +307,8 @@ export type PhotoUpdateManyMutationInput = {
   url?: Prisma.StringFieldUpdateOperationsInput | string
   filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cloudinaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PhotoUncheckedUpdateManyInput = {
@@ -281,6 +317,8 @@ export type PhotoUncheckedUpdateManyInput = {
   url?: Prisma.StringFieldUpdateOperationsInput | string
   filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cloudinaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PhotoListRelationFilter = {
@@ -299,6 +337,8 @@ export type PhotoCountOrderByAggregateInput = {
   url?: Prisma.SortOrder
   filename?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  cloudinaryId?: Prisma.SortOrder
+  status?: Prisma.SortOrder
 }
 
 export type PhotoMaxOrderByAggregateInput = {
@@ -307,6 +347,8 @@ export type PhotoMaxOrderByAggregateInput = {
   url?: Prisma.SortOrder
   filename?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  cloudinaryId?: Prisma.SortOrder
+  status?: Prisma.SortOrder
 }
 
 export type PhotoMinOrderByAggregateInput = {
@@ -315,6 +357,8 @@ export type PhotoMinOrderByAggregateInput = {
   url?: Prisma.SortOrder
   filename?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  cloudinaryId?: Prisma.SortOrder
+  status?: Prisma.SortOrder
 }
 
 export type PhotoCreateNestedManyWithoutEventInput = {
@@ -364,6 +408,8 @@ export type PhotoCreateWithoutEventInput = {
   url: string
   filename?: string | null
   createdAt?: Date | string
+  cloudinaryId?: string | null
+  status?: string
 }
 
 export type PhotoUncheckedCreateWithoutEventInput = {
@@ -371,6 +417,8 @@ export type PhotoUncheckedCreateWithoutEventInput = {
   url: string
   filename?: string | null
   createdAt?: Date | string
+  cloudinaryId?: string | null
+  status?: string
 }
 
 export type PhotoCreateOrConnectWithoutEventInput = {
@@ -408,6 +456,8 @@ export type PhotoScalarWhereInput = {
   url?: Prisma.StringFilter<"Photo"> | string
   filename?: Prisma.StringNullableFilter<"Photo"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Photo"> | Date | string
+  cloudinaryId?: Prisma.StringNullableFilter<"Photo"> | string | null
+  status?: Prisma.StringFilter<"Photo"> | string
 }
 
 export type PhotoCreateManyEventInput = {
@@ -415,6 +465,8 @@ export type PhotoCreateManyEventInput = {
   url: string
   filename?: string | null
   createdAt?: Date | string
+  cloudinaryId?: string | null
+  status?: string
 }
 
 export type PhotoUpdateWithoutEventInput = {
@@ -422,6 +474,8 @@ export type PhotoUpdateWithoutEventInput = {
   url?: Prisma.StringFieldUpdateOperationsInput | string
   filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cloudinaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PhotoUncheckedUpdateWithoutEventInput = {
@@ -429,6 +483,8 @@ export type PhotoUncheckedUpdateWithoutEventInput = {
   url?: Prisma.StringFieldUpdateOperationsInput | string
   filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cloudinaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type PhotoUncheckedUpdateManyWithoutEventInput = {
@@ -436,6 +492,8 @@ export type PhotoUncheckedUpdateManyWithoutEventInput = {
   url?: Prisma.StringFieldUpdateOperationsInput | string
   filename?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cloudinaryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -446,6 +504,8 @@ export type PhotoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   url?: boolean
   filename?: boolean
   createdAt?: boolean
+  cloudinaryId?: boolean
+  status?: boolean
   event?: boolean | Prisma.EventDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["photo"]>
 
@@ -455,6 +515,8 @@ export type PhotoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   url?: boolean
   filename?: boolean
   createdAt?: boolean
+  cloudinaryId?: boolean
+  status?: boolean
   event?: boolean | Prisma.EventDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["photo"]>
 
@@ -464,6 +526,8 @@ export type PhotoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   url?: boolean
   filename?: boolean
   createdAt?: boolean
+  cloudinaryId?: boolean
+  status?: boolean
   event?: boolean | Prisma.EventDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["photo"]>
 
@@ -473,9 +537,11 @@ export type PhotoSelectScalar = {
   url?: boolean
   filename?: boolean
   createdAt?: boolean
+  cloudinaryId?: boolean
+  status?: boolean
 }
 
-export type PhotoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "eventId" | "url" | "filename" | "createdAt", ExtArgs["result"]["photo"]>
+export type PhotoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "eventId" | "url" | "filename" | "createdAt" | "cloudinaryId" | "status", ExtArgs["result"]["photo"]>
 export type PhotoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   event?: boolean | Prisma.EventDefaultArgs<ExtArgs>
 }
@@ -497,6 +563,8 @@ export type $PhotoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     url: string
     filename: string | null
     createdAt: Date
+    cloudinaryId: string | null
+    status: string
   }, ExtArgs["result"]["photo"]>
   composites: {}
 }
@@ -926,6 +994,8 @@ export interface PhotoFieldRefs {
   readonly url: Prisma.FieldRef<"Photo", 'String'>
   readonly filename: Prisma.FieldRef<"Photo", 'String'>
   readonly createdAt: Prisma.FieldRef<"Photo", 'DateTime'>
+  readonly cloudinaryId: Prisma.FieldRef<"Photo", 'String'>
+  readonly status: Prisma.FieldRef<"Photo", 'String'>
 }
     
 

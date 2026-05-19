@@ -23,23 +23,15 @@ export class PhotosController {
   @Post(':eventId/upload')
   @UseInterceptors(
     FileInterceptor('photo', {
+      // store to a single temp dir; the processor cleans up after cloudinary upload
       storage: diskStorage({
         destination: (req, file, cb) => {
-          const rawEventId = req.params.eventId;
-          const eventId = Array.isArray(rawEventId)
-            ? rawEventId[0]
-            : (rawEventId ?? '');
-          const dir = join(process.cwd(), 'uploads', eventId);
-
-          if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true });
-          }
-
+          const dir = join(process.cwd(), 'uploads', 'temp');
+          if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
           cb(null, dir);
         },
         filename: (req, file, cb) => {
-          const uniqueName = `${randomUUID()}${extname(file.originalname)}`;
-          cb(null, uniqueName);
+          cb(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
       fileFilter: (req, file, cb) => {
@@ -66,12 +58,11 @@ export class PhotosController {
       throw new BadRequestException('Brak pliku');
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const photoUrl = `${baseUrl}/uploads/${eventId}/${file.filename}`;
+    // Enqueue job; returns a photo record with status PENDING
 
-    const photo = await this.photosService.create(
+    const photo = await this.photosService.enqueueUpload(
       eventId,
-      photoUrl,
+      file.path,
       file.filename,
     );
 
@@ -84,5 +75,10 @@ export class PhotosController {
   @Get(':eventId')
   findByEvent(@Param('eventId') eventId: string) {
     return this.photosService.findByEvent(eventId);
+  }
+
+  @Get('status/:photoId')
+  findOne(@Param('photoId') photoId: string) {
+    return this.photosService.findOne(photoId);
   }
 }

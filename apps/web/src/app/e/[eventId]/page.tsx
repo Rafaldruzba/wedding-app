@@ -1,159 +1,318 @@
 'use client'
 
-import { useEffect, useRef, useState, use } from 'react'
-import { API_URL } from './../../lib/api'
+import { use, useCallback, useEffect, useRef, useState } from 'react'
+import { API_URL } from '../../lib/api'
 
-export default function EventCameraPage({ params }: { params: Promise<{ eventId: string }> }) {
+type Step = 'camera' | 'preview' | 'uploading' | 'success' | 'error_camera'
+
+export default function GuestCameraPage({ params }: { params: Promise<{ eventId: string }> }) {
 	const { eventId } = use(params)
-	const videoRef = useRef<HTMLVideoElement | null>(null)
-	const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+	const videoRef = useRef<HTMLVideoElement>(null)
+	const canvasRef = useRef<HTMLCanvasElement>(null)
 	const streamRef = useRef<MediaStream | null>(null)
 
-	const [ready, setReady] = useState(false)
+	const [step, setStep] = useState<Step>('camera')
 	const [preview, setPreview] = useState<string | null>(null)
-	const [uploading, setUploading] = useState(false)
-	const [uploaded, setUploaded] = useState(false)
-	const [error, setError] = useState('')
+	const [uploadError, setUploadError] = useState('')
+	const [count, setCount] = useState(0) // photos sent this session
 
-	useEffect(() => {
-		const startCamera = async () => {
-			try {
-				const stream = await navigator.mediaDevices.getUserMedia({
-					video: { facingMode: 'environment' },
-					audio: false,
-				})
+	// Start camera
+	const startCamera = useCallback(async () => {
+		try {
+			// Stop existing stream first
+			streamRef.current?.getTracks().forEach(t => t.stop())
 
-				streamRef.current = stream
+			const stream = await navigator.mediaDevices.getUserMedia({
+				video: {
+					facingMode: { ideal: 'environment' }, // rear camera on phones
+					width: { ideal: 1920 },
+					height: { ideal: 1080 },
+				},
+				audio: false,
+			})
 
-				if (videoRef.current) {
-					videoRef.current.srcObject = stream
-					await videoRef.current.play()
-					setReady(true)
-				}
-			} catch {
-				setError('Nie udało się uruchomić aparatu. Sprawdź uprawnienia.')
+			streamRef.current = stream
+
+			if (videoRef.current) {
+				videoRef.current.srcObject = stream
+				await videoRef.current.play()
 			}
-		}
 
-		startCamera()
-
-		return () => {
-			streamRef.current?.getTracks().forEach(track => track.stop())
+			setStep('camera')
+		} catch {
+			setStep('error_camera')
 		}
 	}, [])
 
-	const capturePhoto = async () => {
-		setError('')
-		setUploaded(false)
+	useEffect(() => {
+		startCamera()
+		return () => {
+			streamRef.current?.getTracks().forEach(t => t.stop())
+		}
+	}, [startCamera])
 
+	const capture = () => {
 		const video = videoRef.current
 		const canvas = canvasRef.current
-
 		if (!video || !canvas) return
 
 		canvas.width = video.videoWidth
 		canvas.height = video.videoHeight
+		canvas.getContext('2d')?.drawImage(video, 0, 0)
 
-		const ctx = canvas.getContext('2d')
-		if (!ctx) return
+		setPreview(canvas.toDataURL('image/jpeg', 0.92))
+		setStep('preview')
+	}
 
-		ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+	const retake = () => {
+		setPreview(null)
+		setStep('camera')
+	}
 
-		const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
-		setPreview(dataUrl)
-
-		const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(b => resolve(b), 'image/jpeg', 0.92))
-
-		if (!blob) {
-			setError('Nie udało się przygotować zdjęcia.')
-			return
-		}
-
-		setUploading(true)
+	const upload = async () => {
+		if (!canvasRef.current) return
+		setStep('uploading')
+		setUploadError('')
 
 		try {
+			const blob = await new Promise<Blob | null>(resolve =>
+				canvasRef.current!.toBlob(b => resolve(b), 'image/jpeg', 0.92),
+			)
+			if (!blob) throw new Error('Nie udało się przygotować zdjęcia')
+
 			const formData = new FormData()
 			formData.append('photo', blob, `wedding-${Date.now()}.jpg`)
-			formData.append('eventId', eventId)
 
 			const res = await fetch(`${API_URL}/photos/${eventId}/upload`, {
 				method: 'POST',
 				body: formData,
 			})
 
-			if (!res.ok) {
-				throw new Error('Upload nie powiódł się')
-			}
+			if (!res.ok) throw new Error('Upload nie powiódł się')
 
-			setUploaded(true)
-		} catch {
-			setError('Upload się nie udał. Spróbuj jeszcze raz.')
-		} finally {
-			setUploading(false)
+			setCount(c => c + 1)
+			setStep('success')
+		} catch (err) {
+			setUploadError(err instanceof Error ? err.message : 'Błąd uploadu')
+			setStep('preview') // stay on preview so user can retry
 		}
 	}
 
-	const resetPreview = () => {
+	const another = () => {
 		setPreview(null)
-		setUploaded(false)
-		setError('')
+		setStep('camera')
 	}
 
 	return (
-		<main className='min-h-screen bg-black text-white'>
-			<div className='mx-auto flex min-h-screen max-w-md flex-col px-4 py-4'>
-				<div className='mb-4 rounded-2xl border border-white/10 bg-white/5 p-4'>
-					<p className='text-xs text-white/50'>Wydarzenie</p>
-					<h1 className='text-xl font-semibold'>Skan QR i rób zdjęcie</h1>
-					<p className='mt-1 text-sm text-white/60'>Publiczny upload dla eventu: {eventId}</p>
+		<div
+			style={{
+				position: 'fixed',
+				inset: 0,
+				background: '#000',
+				overflow: 'hidden',
+				fontFamily: 'var(--font-body)',
+				color: '#fff',
+				display: 'flex',
+				flexDirection: 'column',
+			}}>
+			{/* Camera error */}
+			{step === 'error_camera' && (
+				<div
+					style={{
+						flex: 1,
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center',
+						justifyContent: 'center',
+						padding: 32,
+						textAlign: 'center',
+						gap: 20,
+					}}>
+					<p style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem' }}>Brak dostępu do kamery</p>
+					<p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.5)', maxWidth: 280 }}>
+						Zezwól na dostęp do aparatu w ustawieniach przeglądarki i spróbuj ponownie.
+					</p>
+					<button onClick={startCamera} className='btn-primary'>
+						Spróbuj ponownie
+					</button>
 				</div>
+			)}
 
-				<div className='relative flex-1 overflow-hidden rounded-[2rem] border border-white/10 bg-white/5'>
-					{!preview ? (
-						<>
-							<video ref={videoRef} playsInline autoPlay muted className='h-full w-full object-cover' />
-							<div className='pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20' />
-							<div className='absolute left-0 right-0 top-0 p-4 text-center'>
-								<span className='rounded-full bg-black/40 px-3 py-1 text-xs text-white/80 backdrop-blur'>
-									aparat aktywny
-								</span>
+			{/* Video / Preview */}
+			{step !== 'error_camera' && (
+				<div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+					{/* Live video */}
+					<video
+						ref={videoRef}
+						playsInline
+						autoPlay
+						muted
+						style={{
+							position: 'absolute',
+							inset: 0,
+							width: '100%',
+							height: '100%',
+							objectFit: 'cover',
+							display: step === 'camera' ? 'block' : 'none',
+						}}
+					/>
+
+					{/* Preview image */}
+					{preview && (step === 'preview' || step === 'uploading' || step === 'success') && (
+						<img
+							src={preview}
+							alt='Podgląd'
+							style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+						/>
+					)}
+
+					{/* Top bar */}
+					<div
+						style={{
+							position: 'absolute',
+							top: 0,
+							left: 0,
+							right: 0,
+							padding: '16px 20px',
+							background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)',
+							display: 'flex',
+							justifyContent: 'space-between',
+							alignItems: 'center',
+						}}>
+						<p style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600 }}>WeddingSnap</p>
+						{count > 0 && (
+							<span
+								style={{
+									background: 'rgba(201,169,110,0.2)',
+									border: '1px solid rgba(201,169,110,0.4)',
+									color: 'var(--gold)',
+									fontSize: '0.75rem',
+									padding: '4px 12px',
+									borderRadius: 100,
+								}}>
+								{count} {count === 1 ? 'zdjęcie' : 'zdjęcia'} wysłane
+							</span>
+						)}
+					</div>
+
+					{/* Success overlay */}
+					{step === 'success' && (
+						<div
+							style={{
+								position: 'absolute',
+								inset: 0,
+								background: 'rgba(0,0,0,0.5)',
+								display: 'flex',
+								flexDirection: 'column',
+								alignItems: 'center',
+								justifyContent: 'center',
+								gap: 12,
+							}}>
+							<div
+								style={{
+									width: 64,
+									height: 64,
+									borderRadius: '50%',
+									background: 'var(--green-dim)',
+									border: '2px solid var(--green)',
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									fontSize: '1.8rem',
+								}}>
+								✓
 							</div>
-						</>
-					) : (
-						<img src={preview} alt='Podgląd zdjęcia' className='h-full w-full object-cover' />
+							<p style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>Zdjęcie wysłane!</p>
+						</div>
+					)}
+
+					{/* Uploading overlay */}
+					{step === 'uploading' && (
+						<div
+							style={{
+								position: 'absolute',
+								inset: 0,
+								background: 'rgba(0,0,0,0.5)',
+								display: 'flex',
+								flexDirection: 'column',
+								alignItems: 'center',
+								justifyContent: 'center',
+								gap: 16,
+							}}>
+							<span className='spinner' style={{ width: 40, height: 40, borderWidth: 3 }} />
+							<p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>Wysyłanie…</p>
+						</div>
 					)}
 				</div>
+			)}
 
-				<canvas ref={canvasRef} className='hidden' />
+			<canvas ref={canvasRef} style={{ display: 'none' }} />
 
-				<div className='mt-4 space-y-3'>
-					{error ? (
-						<div className='rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200'>{error}</div>
-					) : null}
+			{/* Bottom controls */}
+			{step !== 'error_camera' && (
+				<div
+					style={{
+						padding: '20px 24px 36px',
+						background: 'rgba(0,0,0,0.85)',
+						backdropFilter: 'blur(20px)',
+						display: 'flex',
+						flexDirection: 'column',
+						gap: 12,
+					}}>
+					{uploadError && (
+						<p className='error-box' style={{ textAlign: 'center' }}>
+							{uploadError}
+						</p>
+					)}
 
-					{uploaded ? (
-						<div className='rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-200'>
-							Zdjęcie wysłane. Możesz zrobić kolejne.
+					{step === 'camera' && (
+						<div style={{ display: 'flex', justifyContent: 'center' }}>
+							{/* Classic shutter button */}
+							<button
+								onClick={capture}
+								style={{
+									width: 72,
+									height: 72,
+									borderRadius: '50%',
+									border: '4px solid rgba(255,255,255,0.8)',
+									background: 'transparent',
+									cursor: 'pointer',
+									position: 'relative',
+									transition: 'transform 0.1s',
+								}}
+								onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.93)')}
+								onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}>
+								<div
+									style={{
+										position: 'absolute',
+										inset: 6,
+										borderRadius: '50%',
+										background: 'rgba(255,255,255,0.9)',
+									}}
+								/>
+							</button>
 						</div>
-					) : null}
+					)}
 
-					<div className='grid grid-cols-2 gap-3'>
-						<button
-							onClick={preview ? resetPreview : capturePhoto}
-							disabled={!ready || uploading}
-							className='rounded-2xl border border-white/10 bg-white/5 px-4 py-4 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50'>
-							{preview ? 'Zrób ponownie' : 'Zrób zdjęcie'}
-						</button>
+					{step === 'preview' && (
+						<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+							<button onClick={retake} className='btn-secondary' style={{ fontSize: '0.95rem', padding: '14px' }}>
+								Zrób ponownie
+							</button>
+							<button onClick={upload} className='btn-primary' style={{ fontSize: '0.95rem', padding: '14px' }}>
+								Wyślij zdjęcie
+							</button>
+						</div>
+					)}
 
-						<button
-							onClick={capturePhoto}
-							disabled={!ready || uploading}
-							className='rounded-2xl bg-white px-4 py-4 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50'>
-							{uploading ? 'Wysyłanie...' : 'Wyślij'}
+					{step === 'success' && (
+						<button onClick={another} className='btn-primary' style={{ fontSize: '0.95rem', padding: '14px' }}>
+							Zrób kolejne zdjęcie
 						</button>
-					</div>
+					)}
 				</div>
-			</div>
-		</main>
+			)}
+		</div>
 	)
 }
